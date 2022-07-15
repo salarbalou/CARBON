@@ -10,10 +10,13 @@ GPIO.setwarnings(False)
 GPIO.setmode(GPIO.BCM)
 led= 18
 laser = 27
+fan = 22
 GPIO.setup(led, GPIO.OUT)
 GPIO.setup(laser, GPIO.OUT)
+GPIO.setup(fan, GPIO.OUT)
 pwm_led = GPIO.PWM(led, 100)
 pwm_laser = GPIO.PWM(laser, 100)
+pwm_fan = GPIO.PWM(fan, 100)
 
 
 import board
@@ -127,9 +130,18 @@ class carbon():
                     #print("%0.1f, " % t, end="") #used to print the the T value of all pixels
                     T_data.append(t)
                     T_max = np.round(np.max(np.array([T_data])), 2)
-              
+                    error_T = T_max - set_T
+                    Pt = P * error_T #update the P term
+                    It = np.sum((I * error_T)) #update the Integral Term
+                    dc = np.round(Pt + It, 2)
+                
+                    if (dc >= max_dc): #adjust the updated dc boundaries
+                       dc = max_dc
+                    if (dc <= min_dc):
+                       dc = min_dc
+                      
                     pwm_laser.ChangeDutyCycle(0)
-#                   pwm_fan.ChangeDutyCycle(100)
+                    pwm_fan.ChangeDutyCycle(dc)
                     pwm_led.ChangeDutyCycle(0)
               
              sleep(0.1)
